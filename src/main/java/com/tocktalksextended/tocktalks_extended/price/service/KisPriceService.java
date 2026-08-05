@@ -23,17 +23,20 @@ public class KisPriceService {
     private final KisAuthService kisAuthService;
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final KisRateLimiter kisRateLimiter;
 
     public KisPriceService(WebClient kisWebClient,
                            KisApiProperties kisApiProperties,
                            KisAuthService kisAuthService,
                            RedisTemplate<String, String> redisTemplate,
-                           ObjectMapper objectMapper) {
+                           ObjectMapper objectMapper,
+                           KisRateLimiter kisRateLimiter) {
         this.kisWebClient = kisWebClient;
         this.kisApiProperties = kisApiProperties;
         this.kisAuthService = kisAuthService;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.kisRateLimiter = kisRateLimiter;
     }
 
     public KisPriceResponse getCurrentPrice(String stockCode) {
@@ -53,6 +56,8 @@ public class KisPriceService {
     }
 
     private KisPriceResponse fetchFromKis(String stockCode) {
+        kisRateLimiter.acquire();
+
         KisPriceEnvelope envelope = kisWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/inquire-price")
